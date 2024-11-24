@@ -5,6 +5,7 @@ import time
 import torch
 from torch.nn import BCEWithLogitsLoss
 from torch.optim import Adam
+import torchvision
 from torchvision import transforms
 import torchvision
 import segmentation_models_pytorch as smp
@@ -37,22 +38,23 @@ images, labels = next(dataiter)
 
 # img_grid = torchvision.utils.make_grid(labels)
 # matplotlib_imshow(img_grid, one_channel=False)
-
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 model = smp.Unet(
     encoder_name="inceptionresnetv2",        # choose encoder, e.g. mobilenet_v2 or efficientnet-b7
     encoder_weights=None,     # use `imagenet` pre-trained weights for encoder initialization
     in_channels=3,                  # model input channels (1 for gray-scale images, 3 for RGB, etc.)
     classes=6,                      # model output channels (number of classes in your dataset)
 )
-model.encoder.load_state_dict(torch.load("inceptionresnetv2-imagenet.pth", weights_only=True))
+weights = torch.load("inceptionresnetv2-imagenet.pth", weights_only=True)
+model.encoder.load_state_dict(weights)
+model = model.to(DEVICE)
 
 lossFunc = BCEWithLogitsLoss()
-opt = Adam(model.parameters(), lr=0.1)
+opt = Adam(model.parameters(), lr=0.5)
 
 H = {"train_loss": [], "test_loss": []}
 
-NUM_EPOCHS = 10
-DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+NUM_EPOCHS = 100
 trainSteps = len(training_set)
 
 print("[INFO] training the network...")
@@ -70,10 +72,13 @@ for e in range(NUM_EPOCHS):
 
 		tfms = transforms.Compose([
 		    transforms.Resize((new_width, new_height)),
-		    #transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+		    transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
 		])
+		tfms_y = transforms.Compose([
+            transforms.Resize((new_width, new_height))
+        ])
 		x = tfms(x)
-		y = tfms(y)
+		y = tfms_y(y)
 
 		pred = model(x)
 		loss = lossFunc(pred, y)
@@ -96,23 +101,23 @@ endTime = time.time()
 print("[INFO] total time taken to train the model: {:.2f}s".format(
 	endTime - startTime))
 
+torch.save(model.state_dict(), "model.pt")
 
-# tfms = transforms.Compose([
-#         #transforms.Resize(),
-#         transforms.ToTensor(),
-#         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
+image = torchvision.io.read_image('image.png')
+tfms = transforms.Compose([
+          transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])])
 
-# img_tensor = tfms(img).unsqueeze(0)
-
+img_tensor = tfms(image.float())
 
 
-# output = model.forward(img_tensor)
+model.eval()
+output = model.forward(img_tensor.to(DEVICE).unsqueeze(0))
 
-# output = output.squeeze().detach().numpy()
+output = output.cpu().squeeze().detach().numpy()
 
-# for i in range(6):
-#     pred_mask = np.asarray(output[i], dtype=np.uint8)*255
-#     #print(output)
-#     plt.imshow(pred_mask)
-#     plt.show()
+for i in range(6):
+    pred_mask = np.asarray(output[i, :, :])
+    #print(output)
+    plt.imshow(pred_mask)
+    plt.show()
 
