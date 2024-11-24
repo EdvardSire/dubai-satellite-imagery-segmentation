@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 
-dataset_zip_name='Semantic-segmentation-dataset-1.zip'
+dataset_zip_name='Semantic-segmentation-dataset.zip'
 new_folder_name='dataset'
 train_name='train'
 val_name='val'
