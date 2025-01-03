@@ -11,7 +11,7 @@ stdenv.mkDerivation rec {
   ];
 
   buildInputs = with pkgs; [
-    python3
+    python312
     expose-cuda
 	];
 
@@ -21,8 +21,9 @@ stdenv.mkDerivation rec {
   installPhase = ''
     mkdir -p $out/bin
     mkdir -p $out/lib
-    cp -p ${pkgs.python3}/bin/python $out/bin
-    cp -p ${pkgs.python3}/bin/python3 $out/bin
+
+    ln -s ${pkgs.python3}/bin/python $out/bin
+    ln -s ${pkgs.python3}/bin/python3 $out/bin
   '';
 
   postFixup = ''
