@@ -7,6 +7,14 @@ let
   };
   expose-cuda = pkgs.callPackage ./expose-cuda.nix {};
   cuda-python = pkgs.callPackage ./cuda-python.nix { inherit expose-cuda; };
-  env = import ./env.nix;
 in
-  env { pkgs = pkgs; cuda-python = cuda-python; }
+pkgs.mkShell rec {
+  nativeBuildInputs = with pkgs.buildPackages; [
+    cuda-python
+    python3Packages.torch
+  ];
+
+  shellHook = ''
+    echo -e "PyTorch/CUDA environment active.\n"
+  '';
+}
