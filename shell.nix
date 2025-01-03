@@ -13,8 +13,4 @@ pkgs.mkShell rec {
     cuda-python
     python3Packages.torch
   ];
-
-  shellHook = ''
-    echo -e "PyTorch/CUDA environment active.\n"
-  '';
 }

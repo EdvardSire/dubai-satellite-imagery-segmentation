@@ -22,9 +22,11 @@ stdenv.mkDerivation rec {
     mkdir -p $out/bin
     mkdir -p $out/lib
     cp -p ${pkgs.python3}/bin/python $out/bin
+    cp -p ${pkgs.python3}/bin/python3 $out/bin
   '';
 
   postFixup = ''
     wrapProgram $out/bin/python --suffix LD_LIBRARY_PATH ':' ${expose-cuda}/lib
+    wrapProgram $out/bin/python3 --suffix LD_LIBRARY_PATH ':' ${expose-cuda}/lib
   '';
 }
