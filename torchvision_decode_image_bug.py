@@ -11,4 +11,3 @@ if __name__ == "__main__":
         mask = decode_image(mask_file.__str__())
         cv_mask = cv2.imread(mask_file.__str__())
         print("torchvision.io.decode_image:", mask.shape, "cv2.imread:", cv_mask.shape, mask_file.name)
-
