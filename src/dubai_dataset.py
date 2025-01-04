@@ -41,23 +41,30 @@ class DubaiDatasetBatchless(Dataset):
             self.images.append(image)
             self.unprocessed_masks.append(mask)
 
-        for index, mask in enumerate(self.unprocessed_masks):
+        ###  Fix 0's in the masks 
+        UNLABELED = 155
+        DEBUG_MASK_VALUES = False
+        if DEBUG_MASK_VALUES:
+            for index, mask in enumerate(self.unprocessed_masks):
+                first_image_channel = mask[0]
+                tensor_to_match = torch.tensor(self.classes)
+                matches = (first_image_channel.unsqueeze(-1) == tensor_to_match).any(dim=-1)
+                non_matches_count = (~matches).sum().item()
+
+                print(f'{index} has {non_matches_count} non-matches')
+                print(first_image_channel[~matches])
+                print()
+                sys.stdout.flush()
+
+        for mask in self.unprocessed_masks:
             first_image_channel = mask[0]
-            tensor_to_match = torch.tensor(self.classes)
-            matches = (first_image_channel.unsqueeze(-1) == tensor_to_match).any(dim=-1)
-            non_matches_count = (~matches).sum().item()
-
-            print(f'{index} has {non_matches_count} non-matches')
-            print(first_image_channel[~matches])
-            print()
-            sys.stdout.flush()
-        
-
+            first_image_channel[first_image_channel == 0] = UNLABELED
+            self.processed_masks.append(first_image_channel)
 
 
 
     def __getitem__(self, index):
-        return None
+        return self.images[index], self.processed_masks[index]
 
 
     def __len__(self):
@@ -66,6 +73,9 @@ class DubaiDatasetBatchless(Dataset):
 
 if __name__ == '__main__':
     dataset = DubaiDatasetBatchless(Path(__file__).parent.parent / 'dataset' / 'train')
+    image, mask = dataset.__getitem__(0) 
+    print(image.shape, image.dtype)
+    print(mask.shape, mask.dtype)
 
     # for mask in dataset.unprocessed_masks:
     #     show_CHW_image(mask)
