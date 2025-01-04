@@ -60,6 +60,7 @@ shuffle_from_train_to_val () {
 
 
 ROOT_START_DIR="$(pwd)"
+[ -e $dataset_zip_name ] || { echo "Dataset zip does not exist"; exit 1; }
 cleanup
 extract_from_zip_into_one_dir
 shuffle_from_train_to_val
