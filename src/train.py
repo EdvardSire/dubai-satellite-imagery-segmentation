@@ -4,6 +4,7 @@ from pathlib import Path
 import math
 import sys
 import torch
+from torch.utils.tensorboard.writer import SummaryWriter
 from torchvision.transforms import v2
 
 import segmentation_models_pytorch as smp
@@ -50,13 +51,21 @@ if __name__ == "__main__":
     image = image_tfs(image)
     mask = mask_tfs(mask.unsqueeze(0))
 
-    NUM_EPOCHS = 2
     loss_function = torch.nn.BCEWithLogitsLoss() 
     optimizer = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
-    print(optimizer)
 
+    LOGDIR=Path(__file__).parent.parent / 'runs'; LOGDIR.mkdir(exist_ok=True)
+    paths = [path for path in LOGDIR.iterdir() if path.name.startswith("exp")]
+    try:
+        iternum = 1+int(max([iternum.__str__().split("_")[1] for iternum in paths]))
+    except:
+        iternum = 1
+
+    writer = SummaryWriter(log_dir="runs/exp_{}".format((iternum)))
 
     model.train()
+    step = 0
+    NUM_EPOCHS = 100
     for e in range(NUM_EPOCHS):
         running_loss = 0.
         last_loss = 0.
@@ -68,5 +77,8 @@ if __name__ == "__main__":
             loss = loss_function(outputs, masks)
             loss.backward()
             optimizer.step()
-            print(loss)
-            sys.stdout.flush()
+            step += 1
+
+            if writer:
+                writer.add_scalar("Loss/train", loss, step)
+
