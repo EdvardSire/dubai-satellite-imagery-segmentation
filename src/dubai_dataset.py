@@ -6,22 +6,23 @@ import cv2
 from torch.utils.data import Dataset
 
 
-def show_CHW_image(image, window_name="window"):
-    image = image.permute(1, 2, 0).numpy()  # Convert to (H, W, C)
+def show_CHW_image(image, window_name='window'):
+    image = image.permute(1, 2, 0).numpy()  # (C, H, W) to (H, W, C)
     cv2.imshow(window_name, image)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
 
 class DubaiDatasetBatchless(Dataset):
-    """
+    '''
     cv2.imread return HWC
     torchvision.io.decode_image return CHW
     for training we want NCHW
-    """
+    '''
 
-    def __init__(self, folder_path):
+    def __init__(self, folder_path, device='cpu'):
         super(DubaiDatasetBatchless, self).__init__()
+        self.device = device
         self.image_paths = list(Path(folder_path).glob('*.jpg'))
         self.classes = [60, 132, 110, 254, 226, 155]
         self.images = list()
@@ -64,7 +65,8 @@ class DubaiDatasetBatchless(Dataset):
 
 
     def __getitem__(self, index):
-        return self.images[index], self.processed_masks[index]
+        # TODO: proper preprocessing
+        return (self.images[index]/255).to(self.device), (self.processed_masks[index]/255).to(self.device)
 
 
     def __len__(self):
@@ -74,8 +76,6 @@ class DubaiDatasetBatchless(Dataset):
 if __name__ == '__main__':
     dataset = DubaiDatasetBatchless(Path(__file__).parent.parent / 'dataset' / 'train')
     image, mask = dataset.__getitem__(0) 
-    print(image.shape, image.dtype)
-    print(mask.shape, mask.dtype)
 
     # for mask in dataset.unprocessed_masks:
     #     show_CHW_image(mask)
