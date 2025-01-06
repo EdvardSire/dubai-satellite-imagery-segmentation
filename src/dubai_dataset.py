@@ -8,6 +8,14 @@ from torch.utils.data import Dataset
 
 def show_CHW_image(image, window_name='window'):
     image = image.permute(1, 2, 0).numpy()  # (C, H, W) to (H, W, C)
+    cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
+    cv2.imshow(window_name, image)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
+def show_HW_image(image, window_name='window'):
+    image = image.numpy()
+    cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
     cv2.imshow(window_name, image)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
@@ -59,14 +67,18 @@ class DubaiDatasetBatchless(Dataset):
 
         for mask in self.unprocessed_masks:
             first_image_channel = mask[0]
-            first_image_channel[first_image_channel == 0] = UNLABELED
-            self.processed_masks.append(first_image_channel)
+            first_image_channel[first_image_channel == 0] = UNLABELED # H*W
+            h, w = first_image_channel.shape
+            mask_per_class = torch.zeros((len(self.classes), h, w)) # NUM_CLASSES*H*W
+            for i, c in enumerate(self.classes):
+                mask_per_class[i][first_image_channel == c] = 1
+            self.processed_masks.append(mask_per_class)
 
 
 
     def __getitem__(self, index):
         # TODO: proper preprocessing
-        return (self.images[index]/255).to(self.device), self.processed_masks[index].to(self.device)
+        return (self.images[index]/255).to(self.device).unsqueeze(0), self.processed_masks[index].to(self.device).unsqueeze(0)
 
 
     def __len__(self):
@@ -75,8 +87,24 @@ class DubaiDatasetBatchless(Dataset):
 
 if __name__ == '__main__':
     dataset = DubaiDatasetBatchless(Path(__file__).parent.parent / 'dataset' / 'train')
-    image, mask = dataset.__getitem__(0) 
 
-    # for mask in dataset.unprocessed_masks:
-    #     show_CHW_image(mask)
+    def preview_images_and_masks():
+        for i in range(dataset.__len__()):
+            image, mask = dataset.__getitem__(i) # single batch item
+            mask = mask.unsqueeze(0)
+            show_CHW_image(image)
+            show_CHW_image(mask)
+    preview_images_and_masks()
+
+    def visualize_masks_for_training():
+        for i in range(dataset.__len__()):
+            _, mask = dataset.__getitem__(i) # single batch item 
+            show_HW_image(mask)
+            for layer in mask:
+                show_HW_image(layer)
+    visualize_masks_for_training()
+
+
+
+
 
