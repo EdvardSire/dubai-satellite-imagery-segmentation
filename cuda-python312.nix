@@ -4,7 +4,7 @@ stdenv.mkDerivation rec {
 
   name    = "cuda-python-${version}";
   version = "1.0";
-  src     = ./.;
+  src = builtins.filterSource (path: type: false) ./.;
 
   nativeBuildInputs = with pkgs; [
     makeWrapper

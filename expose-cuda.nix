@@ -4,7 +4,7 @@ stdenv.mkDerivation rec {
 
   name    = "expose-cuda-${version}";
   version = "1.0";
-  src     = ./.;
+  src = builtins.filterSource (path: type: false) ./.; #https://github.com/NixOS/nixpkgs/issues/23099
 
   installPhase = ''
     mkdir -p $out/lib
