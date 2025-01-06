@@ -47,6 +47,7 @@ pkgs.mkShell {
     python312Packages.torchvision
     python312Packages.ipython
     python312Packages.tensorboard
+    python312Packages.tqdm
     (python312.withPackages (ps: with ps; [
                              (ps.opencv4.override {
                               enableGtk3 = true;
