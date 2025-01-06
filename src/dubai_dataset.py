@@ -66,7 +66,7 @@ class DubaiDatasetBatchless(Dataset):
 
     def __getitem__(self, index):
         # TODO: proper preprocessing
-        return (self.images[index]/255).to(self.device), (self.processed_masks[index]/255).to(self.device)
+        return (self.images[index]/255).to(self.device), self.processed_masks[index].to(self.device)
 
 
     def __len__(self):
