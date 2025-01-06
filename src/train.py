@@ -1,11 +1,10 @@
 from dubai_dataset import DubaiDatasetBatchless
-from dubai_dataset import show_CHW_image
 
 from pathlib import Path
 import math
+import sys
 import torch
 from torchvision.transforms import v2
-import cv2
 
 import segmentation_models_pytorch as smp
 
@@ -51,11 +50,23 @@ if __name__ == "__main__":
     image = image_tfs(image)
     mask = mask_tfs(mask.unsqueeze(0))
 
-    output = model.forward(image.unsqueeze(0))
+    NUM_EPOCHS = 2
+    loss_function = torch.nn.BCEWithLogitsLoss() 
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
+    print(optimizer)
 
-    for layer in output.squeeze():
-        print(layer.shape, layer.dtype)
-        cv2.imshow("", layer.detach().cpu().numpy())
-        cv2.waitKey(0)
-    
 
+    model.train()
+    for e in range(NUM_EPOCHS):
+        running_loss = 0.
+        last_loss = 0.
+        for i, (images, masks) in enumerate(train_dataset):
+            images = image_tfs(images)
+            masks = image_tfs(masks)
+
+            outputs = model.forward(images)
+            loss = loss_function(outputs, masks)
+            loss.backward()
+            optimizer.step()
+            print(loss)
+            sys.stdout.flush()
