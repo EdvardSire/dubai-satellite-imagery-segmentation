@@ -11,7 +11,7 @@ if __name__ == "__main__":
     val_dataset = DubaiDatasetBatchless(val_path, device)
 
     
-    model = torch.load(Path(__file__).parent.parent / 'runs' / 'exp_batchless_no_preprocessing_1/model.pt' )
+    model = torch.load(Path(__file__).parent.parent / 'runs' / 'exp_batchless_preprocessing_2/model.pt' )
     model.eval()
     with torch.no_grad():
         image, mask = val_dataset.__getitem__(0)

@@ -1,28 +1,13 @@
 from dubai_dataset import DubaiDatasetBatchless
 
 from pathlib import Path
-import math
-import sys
 import torch
 from torch.utils.tensorboard.writer import SummaryWriter
-from torchvision.transforms import v2
 
 import segmentation_models_pytorch as smp
 from tqdm import tqdm
 
 
-def make_divisible_by_32(size):
-    if len(size) == 4:  # BCHW
-        _, _, height, width = size
-    elif len(size) == 3:  # CHW
-        _, height, width = size
-    else:
-        assert len(size) == 2
-        height, width = size
-
-    height = math.ceil(height / 32) * 32
-    width = math.ceil(width / 32) * 32
-    return (height, width)
 
 if __name__ == '__main__':
     device = 'cuda' if torch.cuda.is_available() else 'cpu'; print(f'Device type: {device}')
@@ -41,19 +26,7 @@ if __name__ == '__main__':
     model.encoder.load_state_dict(weights)
 
 
-    model.eval().to(device)
-    image, mask = train_dataset.__getitem__(0)
-    image_tfs = v2.Compose([
-        v2.Resize(make_divisible_by_32(image.shape), interpolation=v2.InterpolationMode.BILINEAR)
-        ])
-    mask_tfs = v2.Compose([
-        v2.Resize(make_divisible_by_32(mask.shape), interpolation=v2.InterpolationMode.NEAREST)
-        ])
-    image = image_tfs(image)
-    mask = mask_tfs(mask.unsqueeze(0))
 
-    loss_function = torch.nn.BCEWithLogitsLoss() 
-    optimizer = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
 
     LOGDIR=Path(__file__).parent.parent / 'runs'; LOGDIR.mkdir(exist_ok=True)
     paths = [path for path in LOGDIR.iterdir() if path.name.startswith('exp')]
@@ -61,19 +34,21 @@ if __name__ == '__main__':
         iternum = 1+int(max([iternum.__str__().split('_')[-1] for iternum in paths]))
     except:
         iternum = 1
-
     writer = SummaryWriter(log_dir=f'runs/exp_batchless_preprocessing_{iternum}')
 
+    loss_function = torch.nn.BCEWithLogitsLoss() 
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
     step = 0
     NUM_EPOCHS = 10
+    model.to(device)
     for e in tqdm(range(NUM_EPOCHS)):
         running_loss = 0.0
         last_loss = 0.0
 
         model.train()
         for i, (images, masks) in enumerate(train_dataset):
-            images = image_tfs(images)
-            masks = image_tfs(masks)
+            images = train_dataset.image_tfs(images)
+            masks = train_dataset.mask_tfs(masks)
 
             outputs = model.forward(images)
             loss = loss_function(outputs, masks)
@@ -88,10 +63,10 @@ if __name__ == '__main__':
         val_loss = 0.0
         with torch.no_grad():
             for images, masks in val_dataset:
-                images = image_tfs(images)
-                masks = mask_tfs(masks)
+                images = val_dataset.image_tfs(images)
+                masks = val_dataset.mask_tfs(masks)
 
-                outputs = model(images)
+                outputs = model.forward(images)
                 loss = loss_function(outputs, masks)
                 val_loss += loss.item()
 

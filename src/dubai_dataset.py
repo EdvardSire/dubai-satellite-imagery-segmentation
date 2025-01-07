@@ -51,19 +51,6 @@ class DubaiDatasetBatchless(Dataset):
         self.images = list()
         self.unprocessed_masks = list()
         self.processed_masks = list()
-        def image_tfs(image):
-            tf = v2.Compose([
-                v2.Resize(make_divisible_by_32(image.shape), interpolation=v2.InterpolationMode.BILINEAR),
-                # https://github.com/Cadene/pretrained-models.pytorch/blob/master/pretrainedmodels/models/inceptionresnetv2.py
-                v2.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
-            ])
-            return tf(image)
-
-        def mask_tfs(mask):
-            tf = v2.Compose([
-                v2.Resize(make_divisible_by_32(mask.shape), interpolation=v2.InterpolationMode.NEAREST)
-            ])
-            return tf(image)
 
 
         for image_file in self.image_paths:
@@ -102,15 +89,28 @@ class DubaiDatasetBatchless(Dataset):
                 mask_per_class[i][first_image_channel == c] = 1
             self.processed_masks.append(mask_per_class)
 
+    def image_tfs(self, images):
+        tf = v2.Compose([
+            v2.Resize(make_divisible_by_32(images.shape), interpolation=v2.InterpolationMode.BILINEAR),
+            # https://github.com/Cadene/pretrained-models.pytorch/blob/master/pretrainedmodels/models/inceptionresnetv2.py
+            v2.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+        ])
+        return tf(images)
+
+    def mask_tfs(self, masks):
+        tf = v2.Compose([
+            v2.Resize(make_divisible_by_32(masks.shape), interpolation=v2.InterpolationMode.NEAREST)
+        ])
+        return tf(masks)
 
 
     def __getitem__(self, index):
-        # TODO: proper preprocessing
         return (self.images[index]/255).to(self.device).unsqueeze(0), self.processed_masks[index].to(self.device).unsqueeze(0)
 
 
     def __len__(self):
         return len(self.images)
+
 
 
 if __name__ == '__main__':
@@ -129,7 +129,22 @@ if __name__ == '__main__':
             sys.stdout.flush()
             for layer in mask.squeeze():
                 show_HW_image(layer)
-    visualize_masks_for_training()
+    # visualize_masks_for_training()
+
+    def preview_image_tfs():
+        for i in range(dataset.__len__()):
+            images, _ = dataset.__getitem__(i)
+            images = dataset.image_tfs(images)
+            show_CHW_image(images.squeeze())
+    # preview_image_tfs()
+
+    def preview_mask_tfs():
+        for i in range(dataset.__len__()):
+            _, masks = dataset.__getitem__(i)
+            masks = dataset.mask_tfs(masks)
+            for layer in masks.squeeze():
+                show_HW_image(layer)
+    preview_mask_tfs()
 
 
 
