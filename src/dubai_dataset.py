@@ -1,9 +1,11 @@
-from pathlib import Path
 import sys
+import math
+from pathlib import Path
 
 import torch
-import cv2
 from torch.utils.data import Dataset
+from torchvision.transforms import v2
+import cv2
 
 
 def show_CHW_image(image, window_name='window'):
@@ -19,6 +21,19 @@ def show_HW_image(image, window_name='window'):
     cv2.imshow(window_name, image)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
+
+def make_divisible_by_32(size):
+    if len(size) == 4:  # BCHW
+        _, _, height, width = size
+    elif len(size) == 3:  # CHW
+        _, height, width = size
+    else:
+        assert len(size) == 2
+        height, width = size
+
+    height = math.ceil(height / 32) * 32
+    width = math.ceil(width / 32) * 32
+    return (height, width)
 
 
 class DubaiDatasetBatchless(Dataset):
@@ -36,6 +51,19 @@ class DubaiDatasetBatchless(Dataset):
         self.images = list()
         self.unprocessed_masks = list()
         self.processed_masks = list()
+        def image_tfs(image):
+            tf = v2.Compose([
+                v2.Resize(make_divisible_by_32(image.shape), interpolation=v2.InterpolationMode.BILINEAR),
+                # https://github.com/Cadene/pretrained-models.pytorch/blob/master/pretrainedmodels/models/inceptionresnetv2.py
+                v2.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+            ])
+            return tf(image)
+
+        def mask_tfs(mask):
+            tf = v2.Compose([
+                v2.Resize(make_divisible_by_32(mask.shape), interpolation=v2.InterpolationMode.NEAREST)
+            ])
+            return tf(image)
 
 
         for image_file in self.image_paths:
@@ -88,19 +116,18 @@ class DubaiDatasetBatchless(Dataset):
 if __name__ == '__main__':
     dataset = DubaiDatasetBatchless(Path(__file__).parent.parent / 'dataset' / 'train')
 
-    def preview_images_and_masks():
+    def preview_images():
         for i in range(dataset.__len__()):
             image, mask = dataset.__getitem__(i) # single batch item
-            mask = mask.unsqueeze(0)
-            show_CHW_image(image)
-            show_CHW_image(mask)
-    preview_images_and_masks()
+            show_CHW_image(image.squeeze())
+    # preview_images()
 
     def visualize_masks_for_training():
         for i in range(dataset.__len__()):
             _, mask = dataset.__getitem__(i) # single batch item 
-            show_HW_image(mask)
-            for layer in mask:
+            print(mask)
+            sys.stdout.flush()
+            for layer in mask.squeeze():
                 show_HW_image(layer)
     visualize_masks_for_training()
 

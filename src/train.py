@@ -58,11 +58,11 @@ if __name__ == '__main__':
     LOGDIR=Path(__file__).parent.parent / 'runs'; LOGDIR.mkdir(exist_ok=True)
     paths = [path for path in LOGDIR.iterdir() if path.name.startswith('exp')]
     try:
-        iternum = 1+int(max([iternum.__str__().split('_')[1] for iternum in paths]))
+        iternum = 1+int(max([iternum.__str__().split('_')[-1] for iternum in paths]))
     except:
         iternum = 1
 
-    writer = SummaryWriter(log_dir='runs/exp_batchless_no_preprocessing_{}'.format((iternum)))
+    writer = SummaryWriter(log_dir=f'runs/exp_batchless_preprocessing_{iternum}')
 
     step = 0
     NUM_EPOCHS = 10
